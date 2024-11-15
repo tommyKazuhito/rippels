@@ -3,10 +3,10 @@ import * as THREE from 'three';
 
 import TextureImage from '@public/img/115-2560x1440.jpg';
 import Controller from '~/abstracts/Controller';
-import fragmentSource from '~/pages/three-functional/resources/shader/texture.frag?raw';
-import vertexSource from '~/pages/three-functional/resources/shader/texture.vert?raw';
+import fragmentSource from '~/pages/three-functional-alt/resources/shader/texture.frag?raw';
+import vertexSource from '~/pages/three-functional-alt/resources/shader/texture.vert?raw';
 
-export default class ThreeFunctional extends Controller {
+export default class ThreeFunctionalAlt extends Controller {
   constructor() {
     super('three-functional');
   }
@@ -41,17 +41,24 @@ export default class ThreeFunctional extends Controller {
     // 画像テクスチャのロード
     const texture = new THREE.TextureLoader().load(TextureImage);
 
-    // ポインター情報を保存
-    const previousPointerPosition = new THREE.Vector2(-10, -10);
-    let pointerSpeed = 0; // ポインター速度
+    // 最大波紋数
+    const MAX_RIPPLES = 50;
 
-    // カスタムシェーダーマテリアル
+    // 波紋データを保持
+    const ripples = Array.from({ length: MAX_RIPPLES }, () => ({
+      position: new THREE.Vector2(-10, -10), // 初期位置（画面外）
+      startTime: 0, // 波紋の開始時間
+    }));
+
+    // シェーダー用のuniforms
     const uniforms: THREE.ShaderMaterialParameters['uniforms'] = {
       u_time: { value: 0 },
       u_texture: { value: texture },
-      u_mouse: { value: previousPointerPosition },
-      u_mouseIntensity: { value: 0 }, // 減衰効果用の強度
+      u_ripple_positions: { value: ripples.map((r) => r.position) },
+      u_ripple_start_times: { value: ripples.map((r) => r.startTime) },
     };
+
+    // カスタムシェーダーマテリアル
     const material = new THREE.ShaderMaterial({
       uniforms,
       vertexShader: vertexSource,
@@ -83,47 +90,35 @@ export default class ThreeFunctional extends Controller {
 
     // ポインターイベント
     const onPointerMove = (e: PointerEvent) => {
-      const x = e.clientX / (rootElement?.clientWidth ?? 1);
-      const y = e.clientY / (rootElement?.clientHeight ?? 1);
+      if (!rootElement) return;
 
-      // UV座標系に合わせる（Y軸は上下が反転しているため補正）
+      const rect = rootElement.getBoundingClientRect();
+
+      // ポインター位置を正確に UV 座標に変換
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+
+      // UV座標系に合わせる（Y軸の反転を含む補正）
       const uvX = x;
       const uvY = 1.0 - y;
+      console.log('UV Coordinates:', uvX, uvY);
 
-      // 現在のポインター位置
-      const currentPointerPosition = new THREE.Vector2(uvX, uvY);
+      ripples.push({
+        position: new THREE.Vector2(uvX, uvY),
+        startTime: uniforms.u_time.value, // 現在の時間を記録
+      });
 
-      // 移動速度を計算
-      pointerSpeed = currentPointerPosition.distanceTo(previousPointerPosition);
-
-      // マウス位置と強度を更新
-      material.uniforms.u_mouse.value.x = uvX;
-      material.uniforms.u_mouse.value.y = uvY;
-
-      // 移動速度に基づいて強度を増加
-      material.uniforms.u_mouseIntensity.value += pointerSpeed * 0.5; // 0.5は速度に基づく強度スケール
-      material.uniforms.u_mouseIntensity.value = Math.min(
-        material.uniforms.u_mouseIntensity.value,
-        1.0,
-      ); // 最大値を制限
-
-      // 現在の位置を次回の比較用に保存
-      previousPointerPosition.copy(currentPointerPosition);
+      // シェーダー用のデータを更新
+      material.uniforms.u_ripple_positions.value = ripples.map((r) => r.position);
+      material.uniforms.u_ripple_start_times.value = ripples.map((r) => r.startTime);
     };
     rootElement?.addEventListener('pointermove', onPointerMove);
 
     // フレーム毎の再描画
     const tick = () => {
-      material.uniforms.u_time.value += 0.05;
-      renderer.render(scene, camera);
+      uniforms.u_time.value += 0.05;
 
-      // 強度を徐々に減衰
-      if (material.uniforms.u_mouseIntensity.value > 0.0) {
-        material.uniforms.u_mouseIntensity.value *= 0.95; // 減衰率
-        if (material.uniforms.u_mouseIntensity.value < 0.01) {
-          material.uniforms.u_mouseIntensity.value = 0.0; // 最小値で停止
-        }
-      }
+      renderer.render(scene, camera);
 
       requestAnimationFrame(tick);
     };
@@ -133,4 +128,4 @@ export default class ThreeFunctional extends Controller {
   }
 }
 
-new ThreeFunctional();
+new ThreeFunctionalAlt();

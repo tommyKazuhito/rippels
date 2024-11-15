@@ -9,7 +9,7 @@ uniform float u_mouseIntensity;
 
 void main() {
   // 領域外判定と減衰処理
-  if (abs(u_mouse.x) > 1.0 || abs(u_mouse.y) > 1.0 || u_mouseIntensity < 0.01) {
+  if (u_mouseIntensity < 0.01) {
     // マウスが範囲外の場合は波紋なしでテクスチャのピクセルをそのまま表示
     gl_FragColor = texture2D(u_texture, vUv);
     return;
@@ -25,7 +25,7 @@ void main() {
   // 15.0 * rippleDist: 波紋の周期を決定します。15.0を大きくすると波紋の回数が増えます。
   // - u_time * 6.0: 時間経過とともに波紋が動くようにします。6.0は波紋の速度を調整するための係数です。
   // * 0.02: 波紋の振動の強さを調整します。
-  float rippleEffect = sin(15.0 * rippleDist - u_time * 6.0) * 0.02 * u_mouseIntensity;
+  float rippleEffect = sin(25.0 * rippleDist - u_time * 6.0) * 0.05 * u_mouseIntensity;
 
   // 計算したrippleEffectをripplePosに掛けてテクスチャのUV座標を少しずらし、波紋効果を作成します。このずれが、実際に波が揺れるような効果を生み出します。
   vec2 rippleUv = vUv + rippleEffect * ripplePos;
