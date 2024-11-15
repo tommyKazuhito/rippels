@@ -14,7 +14,7 @@ export default abstract class Controller {
   constructor(pageName: string) {
     this.pageName = pageName;
 
-    import('~/utilities/browser').then(() => {
+    import('~/utilities/browser').then((module) => {
       this.init();
     });
   }

@@ -12,5 +12,5 @@ import '~/styles/browser.scss';
     }
   }
 
-  window.addEventListener('DOMContentLoaded', onLoad);
+  onLoad();
 })();
