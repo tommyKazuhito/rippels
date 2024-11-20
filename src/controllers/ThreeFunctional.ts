@@ -90,8 +90,8 @@ export default class ThreeFunctional extends Controller {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const helper = new THREE.CameraHelper(camera);
-    scene.add(helper);
+    const cameraHelper = new THREE.CameraHelper(camera);
+    scene.add(cameraHelper);
 
     // リサイズイベント
     const onResize = () => {
@@ -103,30 +103,36 @@ export default class ThreeFunctional extends Controller {
       renderer.setSize(width, height);
 
       // 画面のアスペクト比と画像のアスペクト比を計算
-      const aspect = width / height;
-      const imgAspect = img.width / img.height;
+      const aspect = width / height; // 画面のアスペクト比
+      const imgAspect = img.width / img.height; // 画像のアスペクト比
 
-      // カメラの投影範囲を更新
-      if (aspect > imgAspect) {
-        // 横長の画面の場合
-        camera.left = -aspect;
-        camera.right = aspect;
-        camera.top = 1;
-        camera.bottom = -1;
-      } else {
-        // 縦長の画面の場合
-        camera.left = -1;
-        camera.right = 1;
-        camera.top = 1 / aspect;
-        camera.bottom = -1 / aspect;
-      }
+      // カメラの投影範囲を画面全体に固定
+      camera.left = -aspect;
+      camera.right = aspect;
+      camera.top = 1;
+      camera.bottom = -1;
       camera.updateProjectionMatrix();
+      cameraHelper.update();
 
-      // `PlaneGeometry`のサイズをカメラの投影範囲に合わせる
-      const planeWidth = Math.abs(camera.right - camera.left);
-      const planeHeight = Math.abs(camera.top - camera.bottom);
+      // メッシュのスケールを調整（画像のアスペクト比を維持し、画面全体を埋める）
+      let scaleX = 1;
+      let scaleY = 1;
 
-      mesh.scale.set(planeWidth, planeHeight, 1); // 平面をカメラの投影範囲にスケール
+      // メッシュのスケールを調整（画面全体を埋め、画像のアスペクト比を維持）
+      if (aspect > imgAspect) {
+        // 画面が横長の場合
+        // 高さを基準に横幅をスケールアップ
+        scaleX = aspect;
+        scaleY = aspect / imgAspect;
+      } else {
+        // 画面が縦長の場合
+        // 横幅を基準に高さをスケールアップ
+        scaleX = imgAspect / aspect;
+        scaleY = 1;
+      }
+
+      // スケールを適用（* 2はカメラの投影範囲がx方向に-aspect ~ aspect、y方向に-1 ~ 1の為）
+      mesh.scale.set(scaleX * 2, scaleY * 2, 1);
     };
     onResize();
 
